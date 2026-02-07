@@ -180,7 +180,7 @@
             安全的客户端文件解密工具 · 兼容 OpenSSL
           </p>
           <p class="footer-copyright">
-            © 2024 SecureDecrypt. 所有操作在本地完成。
+            © 2026 SecureDecrypt. 所有操作在本地完成。
           </p>
         </div>
       </div>
