@@ -75,7 +75,7 @@ export async function decryptFile(
 
     // Extract salt (bytes 8-15)
     const salt = fileBytes.slice(8, 16);
-    
+
     // Extract encrypted data (bytes 16+)
     const encryptedData = fileBytes.slice(16);
 
@@ -131,12 +131,12 @@ export async function decryptFile(
     // Generate output filename
     const originalName = file.name;
     let outputName = originalName;
-    
+
     // Remove .enc extension if present
     if (outputName.endsWith('.enc')) {
       outputName = outputName.slice(0, -4);
     }
-    
+
     // If still has .tar.xz or similar, keep it
     // Otherwise add .decrypted extension
     if (outputName === originalName || outputName === originalName.replace('.enc', '')) {
@@ -151,7 +151,7 @@ export async function decryptFile(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
-    
+
     onProgress?.({
       stage: 'error',
       progress: 0,
@@ -193,7 +193,7 @@ async function deriveKey(
   // Use node-forge for PBKDF2
   const passwordBytes = forge.util.encodeUtf8(password);
   const saltBytes = forge.util.createBuffer(salt);
-  
+
   // Derive 48 bytes: 32 for key + 16 for IV
   const derivedKeyBytes = forge.pkcs5.pbkdf2(
     passwordBytes,
@@ -202,8 +202,8 @@ async function deriveKey(
     48,
     forge.md.sha256.create()
   );
-  
-  return new Uint8Array(forge.util.createBuffer(derivedKeyBytes).getBytes().split('').map(c => c.charCodeAt(0)));
+
+  return new Uint8Array(forge.util.createBuffer(derivedKeyBytes).getBytes().split('').map((c: string) => c.charCodeAt(0)));
 }
 
 /**
@@ -224,57 +224,57 @@ async function decryptAES256CBC(
   // Convert to forge buffers
   const keyBuffer = forge.util.createBuffer(key);
   const ivBuffer = forge.util.createBuffer(iv);
-  
+
   // Create decipher
   const decipher = forge.cipher.createDecipher('AES-CBC', keyBuffer);
   decipher.start({ iv: ivBuffer });
-  
+
   // Process in chunks for progress reporting
   const chunkSize = 64 * 1024; // 64KB chunks
   let offset = 0;
-  const totalChunks = Math.ceil(encryptedData.length / chunkSize);
-  
+
+
   while (offset < encryptedData.length) {
     const chunk = encryptedData.slice(offset, offset + chunkSize);
     const chunkBuffer = forge.util.createBuffer(chunk);
     decipher.update(chunkBuffer);
-    
+
     offset += chunkSize;
     const progress = Math.min(100, Math.round((offset / encryptedData.length) * 100));
     onProgress?.(progress);
-    
+
     // Allow UI to update
     if (offset < encryptedData.length) {
       await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
-  
+
   // Finish decryption
   const success = decipher.finish();
-  
+
   if (!success) {
     throw new Error('解密失败，可能是密码错误或数据损坏');
   }
-  
+
   // Get decrypted data
   const decryptedBytes = decipher.output.getBytes();
-  return new Uint8Array(decryptedBytes.split('').map(c => c.charCodeAt(0)));
+  return new Uint8Array(decryptedBytes.split('').map((c: string) => c.charCodeAt(0)));
 }
 
 /**
  * Download decrypted file
  */
 export function downloadDecryptedFile(data: Uint8Array, filename: string): void {
-  const blob = new Blob([data], { type: 'application/octet-stream' });
+  const blob = new Blob([data as unknown as BlobPart], { type: 'application/octet-stream' });
   const url = URL.createObjectURL(blob);
-  
+
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   URL.revokeObjectURL(url);
 }
 
@@ -283,10 +283,10 @@ export function downloadDecryptedFile(data: Uint8Array, filename: string): void 
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
-  
+
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const k = 1024;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
 }
